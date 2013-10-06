@@ -1,0 +1,78 @@
+Description of the German Credit dataset.
+
+1. Title: German Credit data
+
+
+2. Source Information
+
+Professor Dr. Hans Hofmann  
+Institut f"ur Statistik und "Okonometrie  
+Universit"at Hamburg  
+FB Wirtschaftswissenschaften  
+Von-Melle-Park 5    
+2000 Hamburg 13 
+
+
+3. Total Number of Instances:  300
+   Training Instances: 200
+   Tuning Instances: 50
+   Test Instances: 50
+
+
+4. Number of Attributes: 7 (2 numerical, 5 categorical)
+
+
+5.  Attribute descriptions  (DM = Deutsch Mark, former currency of Germany)
+
+Attribute 1:  (qualitative)
+	       Status of existing checking account
+         A11 :      ... <    0 DM
+	       A12 : 0 <= ... <  200 DM
+	       A13 :      ... >= 200 DM / salary assignments for at least 1 year
+         A14 : no checking account
+
+Attribute 2:  (qualitative)
+	      Credit history
+	      A20 : no credits taken / all credits paid back duly
+        A21 : all credits at this bank paid back duly
+	      A22 : existing credits paid back duly till now
+        A23 : delay in paying off in the past
+	      A24 : critical account / other credits existing (not at this bank)
+
+Attribute 3:  (qualitative)
+	      Purpose
+	      A30 : car (new)
+	      A31 : car (used)
+	      A32 : furniture/equipment
+	      A33 : radio/television
+	      A34 : domestic appliances
+	      A35 : repairs
+	      A36 : education
+	      A37 : (vacation - does not exist?)
+	      A38 : retraining
+	      A39 : business
+	      A310 : others
+
+Attibute 4:  (qualitative)
+	      Savings account/bonds
+	      A41 :          ... <  100 DM
+	      A42 :   100 <= ... <  500 DM
+	      A43 :   500 <= ... < 1000 DM
+	      A44 :          .. >= 1000 DM
+        A45 :   unknown/ no savings account
+
+Attribute 5:  (numerical)
+	      Duration in month
+
+
+Attribute 6:  (numerical)
+	      Credit amount
+
+
+Attribute 7: (qualitative)
+	      foreign worker
+	      A71 : yes
+	      A72 : no
+
+
+
