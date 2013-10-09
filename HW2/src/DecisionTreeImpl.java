@@ -1,3 +1,9 @@
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Fill in the implementation details of the class DecisionTree
  * using this file. Any methods or secondary classes
@@ -8,7 +14,8 @@
  * 
  * See DecisionTree for a description of default methods.
  */
-public class DecisionTreeImpl extends DecisionTree {
+public class DecisionTreeImpl extends DecisionTree {	
+	private DecTreeNode root = null;
 	/**
 	 * Answers static questions about decision trees.
 	 */
@@ -24,9 +31,15 @@ public class DecisionTreeImpl extends DecisionTree {
 	 * 			the training set
 	 */
 	DecisionTreeImpl(DataSet train) {
+		if(train == null || train.instances == null || train.instances.isEmpty()) {
+			return;
+		}
+		Set<String> attributes = new LinkedHashSet<String>();
+		for (Instance instance : train.instances) {
+			attributes.addAll(instance.attributes);
+		}
 		
-		// TODO: add code here
-		
+		root = trainTree(train.instances, attributes, train.instances);
 	}
 
 	/**
@@ -38,11 +51,60 @@ public class DecisionTreeImpl extends DecisionTree {
 	 * 			the tuning set
 	 */
 	DecisionTreeImpl(DataSet train, DataSet tune) {
-
+		this(train);
 		// TODO: add code here
 		
 	}
+	
+	private DecTreeNode trainTree(List<Instance> examples, List<String> attributes, List<Instance> parentExamples) {
+		if(parentExamples == null || parentExamples.isEmpty()) {
+			return null;
+		} else if(examples == null || examples.isEmpty()) {
+			return plurality(parentExamples);
+		} else if(attributes == null || attributes.isEmpty()) {
+			return plurality(examples);
+		} else {
+			String attribute = importance(attributes, parentExamples);
+			//DecTreeNode node = new DecTreeNode(_label, _attribute, "ROOT", false);
+			for (Instance instance : parentExamples) {
+				
+			}
+		}		
+	}
 
+	private DecTreeNode plurality(List<Instance> examples) {
+		Map<String, Integer> scores = new LinkedHashMap<String, Integer>();
+		for (Instance instance : examples) {
+			Integer score = scores.get(instance.label);
+			if(score == null) {
+				score = 0;
+			}
+			scores.put(instance.label, score + 1);
+		}
+		int winningScore = Integer.MIN_VALUE;
+		String winner = null;
+		for (Map.Entry<String, Integer> entry : scores.entrySet()) {
+			if(!entry.getKey().equals(winner)) {
+				if(winningScore == entry.getValue()) {
+					if (winner == null) {
+						winner = entry.getKey();
+					} else {
+						if(entry.getKey().compareToIgnoreCase(winner) > 0) {
+							winner = entry.getKey();
+						}
+					}
+				} else if (winningScore < entry.getValue()) {
+					winningScore = entry.getValue();
+				}
+			}
+		}
+		return new DecTreeNode(winner, winner, winner, true);
+	}
+	
+	private String importance(List<String> attributes, List<Instance> examples) {
+		
+	}
+	
 	@Override
   /**
    * Evaluates the learned decision tree on a test set.
