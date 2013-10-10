@@ -88,7 +88,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			return plurality(examples, parentAttributeValue);
 		} else {
 			Attribute importantAttribute = importance(attributes,
-					parentExamples);
+					examples);
 			List<Attribute> childAttributes = new ArrayList<Attribute>(
 					attributes);
 			childAttributes.remove(importantAttribute);
@@ -224,14 +224,31 @@ public class DecisionTreeImpl extends DecisionTree {
 		if (examples == null || examples.isEmpty()) {
 			return true;
 		}
-		boolean positive = "1".equals(examples.get(0));
+		boolean positive = "1".equals(examples.get(0).label);
 		for (Instance instance : examples) {
-			if (("0".equals(instance.label) && positive)
+			if (("2".equals(instance.label) && positive)
 					|| ("1".equals(instance.label) && !positive)) {
 				return false;
 			}
 		}
 		return true;
+	}
+	
+	private double midpoint(List<Instance> examples, int attributeIndex) {
+		if (examples == null || examples.isEmpty()) {
+			return 0.0;
+		}
+		double max = Double.NEGATIVE_INFINITY, min = Double.POSITIVE_INFINITY;
+		for (Instance instance : examples) {
+			int attribute = Integer.parseInt(instance.attributes.get(attributeIndex));
+			if(attribute > max) {
+				max = attribute;
+			}
+			if (attribute < min) {
+				min = attribute;
+			}
+		}
+		return 0.5*(max+min);
 	}
 
 	@Override
