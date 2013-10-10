@@ -1,21 +1,21 @@
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
- * Fill in the implementation details of the class DecisionTree
- * using this file. Any methods or secondary classes
- * that you want are fine but we will only interact
- * with those methods in the DecisionTree framework.
+ * Fill in the implementation details of the class DecisionTree using this file.
+ * Any methods or secondary classes that you want are fine but we will only
+ * interact with those methods in the DecisionTree framework.
  * 
  * You must add code for the 4 methods specified below.
  * 
  * See DecisionTree for a description of default methods.
  */
-public class DecisionTreeImpl extends DecisionTree {	
+public class DecisionTreeImpl extends DecisionTree {
 	private DecTreeNode root = null;
+
 	/**
 	 * Answers static questions about decision trees.
 	 */
@@ -23,98 +23,190 @@ public class DecisionTreeImpl extends DecisionTree {
 		// no code necessary
 		// this is void purposefully
 	}
-	
+
 	/**
 	 * Build a decision tree given only a training set.
 	 * 
-	 * @param train 
-	 * 			the training set
+	 * @param train
+	 *            the training set
 	 */
 	DecisionTreeImpl(DataSet train) {
-		if(train == null || train.instances == null || train.instances.isEmpty()) {
+		if (train == null || train.instances == null
+				|| train.instances.isEmpty()) {
 			return;
 		}
-		Set<String> attributes = new LinkedHashSet<String>();
+		List<Attribute> attributes = new ArrayList<Attribute>();
 		for (Instance instance : train.instances) {
-			attributes.addAll(instance.attributes);
+			for (int i = 0; i < instance.attributes.size(); i++) {
+				if (i > attributes.size() - 1) {
+					attributes.add(new Attribute());
+				}
+				attributes.get(i).addValue(instance.attributes.get(i));
+			}
 		}
-		
+
 		root = trainTree(train.instances, attributes, train.instances);
 	}
 
 	/**
-	 * Build a decision tree given a training set then prune it using a tuning set.
+	 * Build a decision tree given a training set then prune it using a tuning
+	 * set.
 	 * 
-	 * @param train 
-	 * 			the training set
-	 * @param tune 
-	 * 			the tuning set
+	 * @param train
+	 *            the training set
+	 * @param tune
+	 *            the tuning set
 	 */
 	DecisionTreeImpl(DataSet train, DataSet tune) {
 		this(train);
 		// TODO: add code here
-		
+
 	}
-	
-	private DecTreeNode trainTree(List<Instance> examples, List<String> attributes, List<Instance> parentExamples) {
-		if(parentExamples == null || parentExamples.isEmpty()) {
+
+	private DecTreeNode trainTree(List<Instance> examples,
+			List<Attribute> attributes, List<Instance> parentExamples) {
+		if (parentExamples == null || parentExamples.isEmpty()) {
 			return null;
-		} else if(examples == null || examples.isEmpty()) {
+		} else if (examples == null || examples.isEmpty()) {
 			return plurality(parentExamples);
-		} else if(attributes == null || attributes.isEmpty()) {
+		} else if (attributes == null || attributes.isEmpty()) {
 			return plurality(examples);
 		} else {
-			String attribute = importance(attributes, parentExamples);
-			//DecTreeNode node = new DecTreeNode(_label, _attribute, "ROOT", false);
-			for (Instance instance : parentExamples) {
-				
+			int importantAttributeIndex = importance(attributes, parentExamples);
+			attributes.get(importantAttributeIndex).used = true;
+			DecTreeNode node = new DecTreeNode("1", "ROOT", "ROOT", false);
+			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
+			for (Instance example : examples) {
+				String importantAttribute = example.attributes
+						.get(importantAttributeIndex);
+				List<Instance> childExample = childExamples
+						.get(importantAttribute);
+				if (childExample == null) {
+					childExample = new ArrayList<Instance>();
+					childExamples.put(importantAttribute, childExample);
+				}
+				childExample.add(example);
 			}
-		}		
+			for (String attribute : childExamples.keySet()) {
+				node.children.add(trainTree(childExamples.get(attribute),
+						attributes, examples));
+			}
+			return node;
+		}
 	}
 
 	private DecTreeNode plurality(List<Instance> examples) {
 		Map<String, Integer> scores = new LinkedHashMap<String, Integer>();
 		for (Instance instance : examples) {
 			Integer score = scores.get(instance.label);
-			if(score == null) {
+			if (score == null) {
 				score = 0;
 			}
 			scores.put(instance.label, score + 1);
 		}
 		int winningScore = Integer.MIN_VALUE;
 		String winner = null;
-		for (Map.Entry<String, Integer> entry : scores.entrySet()) {
-			if(!entry.getKey().equals(winner)) {
-				if(winningScore == entry.getValue()) {
-					if (winner == null) {
-						winner = entry.getKey();
-					} else {
-						if(entry.getKey().compareToIgnoreCase(winner) > 0) {
-							winner = entry.getKey();
-						}
+		for (String label : scores.keySet()) {
+			if (!label.equals(winner)) {
+				int score = scores.get(label);
+				if (winningScore == score) {
+					if (label.compareToIgnoreCase(winner) < 0) {
+						winner = label;
 					}
-				} else if (winningScore < entry.getValue()) {
-					winningScore = entry.getValue();
+				} else if (winningScore < score) {
+					winner = label;
+					winningScore = score;
 				}
 			}
 		}
 		return new DecTreeNode(winner, winner, winner, true);
 	}
-	
-	private String importance(List<String> attributes, List<Instance> examples) {
-		
+
+	private int importance(List<Attribute> attributes, List<Instance> examples) {
+		double winningEntropy = Double.NEGATIVE_INFINITY;
+		int winningAttribute = -1;
+
+		// Calculate H(Credit)
+		double givenCredit = 0;
+		for (Instance example : examples) {
+			if ("1".equals(example.label)) {
+				givenCredit++;
+			}
+		}
+		double creditEntropy = booleanEntropy(givenCredit / examples.size());
+
+		for (int i = 0; i < attributes.size(); i++) {
+			Attribute attribute = attributes.get(i);
+			if (!attribute.used) {
+				// Use these LinkedHashMaps to add up probabilities for
+				// attributes both given credit and without
+				Map<String, Double> attributeScore = new LinkedHashMap<String, Double>(
+						attribute.values.size());
+				Map<String, Double> attributeScoreGivenCredit = new LinkedHashMap<String, Double>(
+						attribute.values.size());
+				int examplesWithCredit = 0;
+				for (int j = 0; j < examples.size(); j++) {
+					Instance example = examples.get(j);
+					String value = example.attributes.get(i);
+					Double score = attributeScore.get(value);
+					if (score == null) {
+						score = 0.0;
+					}
+					attributeScore.put(value, score + 1);
+
+					if ("1".equals(example.label)) {
+						Double scoreGivenCredit = attributeScoreGivenCredit
+								.get(value);
+						if (scoreGivenCredit == null) {
+							scoreGivenCredit = 0.0;
+						}
+						attributeScoreGivenCredit.put(value,
+								scoreGivenCredit + 1);
+						examplesWithCredit++;
+					}
+				}
+
+				// Calculate H(Credit|Attribute)
+				double attributeEntropy = 0;
+				for (String value : attributeScore.keySet()) {
+					Double score = attributeScore.get(value);
+					Double scoreGivenCredit = attributeScoreGivenCredit
+							.get(value);
+					if (score != null && scoreGivenCredit != null && score != 0
+							&& scoreGivenCredit != 0) {
+						attributeEntropy += (score / examples.size() * booleanEntropy(scoreGivenCredit
+								/ examplesWithCredit));
+					}
+				}
+
+				// Calculate I(Credit;Attribute) = H(Credit) -
+				// H(Credit|Attribute)
+				double totalEntropy = creditEntropy - attributeEntropy;
+				if (totalEntropy > winningEntropy) {
+					winningEntropy = totalEntropy;
+					winningAttribute = i;
+				}
+			}
+		}
+		return winningAttribute;
 	}
-	
+
+	private static final double LOG_OF_2 = Math.log(2);
+
+	private double booleanEntropy(double q) {
+		return -(((q * Math.log(q)) / LOG_OF_2) + (((1 - q) * Math.log(1 - q)) / LOG_OF_2));
+	}
+
 	@Override
-  /**
-   * Evaluates the learned decision tree on a test set.
-   * @return the label predictions for each test instance 
-   * 	according to the order in data set list
-   */
+	/**
+	 * Evaluates the learned decision tree on a test set.
+	 * @return the label predictions for each test instance 
+	 * 	according to the order in data set list
+	 */
 	public String[] classify(DataSet test) {
-		
+
 		// TODO: add code here
-		
+
 		return null;
 	}
 
@@ -136,10 +228,9 @@ public class DecisionTreeImpl extends DecisionTree {
 	 *         
 	 */
 	public void print() {
-		
-		// TODO: add code here
-		
-	}
-	
-}
 
+		// TODO: add code here
+
+	}
+
+}
