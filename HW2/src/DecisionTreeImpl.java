@@ -65,27 +65,21 @@ public class DecisionTreeImpl extends DecisionTree {
 	private DecTreeNode trainTree(List<Instance> examples,
 			List<Attribute> attributes, List<Instance> parentExamples,
 			String parentAttributeValue) {
-		if (parentExamples == null || parentExamples.isEmpty()) {
-			return null;
-		} else if (examples == null || examples.isEmpty()) {
+		if (examples.isEmpty() || attributes.isEmpty() || sameLabel(examples)) {
 			return plurality(parentExamples, parentAttributeValue);
-		} else if (sameLabel(examples)) {
-			return new DecTreeNode(examples.get(0).label, "",
-					parentAttributeValue, true);
-		} else if (attributes == null || attributes.isEmpty()) {
-			return plurality(examples, parentAttributeValue);
 		} else {
 			Attribute importantAttribute = importance(attributes, examples);
 			System.out.println("Winning Attribute: "+importantAttribute.attribute.getName());
 			List<Attribute> childAttributes = new ArrayList<Attribute>(
 					attributes);
 			childAttributes.remove(importantAttribute);
-			DecTreeNode node = new DecTreeNode("",
-					importantAttribute.attribute.getName(),
+			DecTreeNodeImpl node = new DecTreeNodeImpl("",
+					importantAttribute,
 					parentAttributeValue, false);
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
 			if (Attribute.Type.NUMERICAL.equals(importantAttribute.attribute.getType())) {
 				double midpoint = midpoint(examples, importantAttribute.index);
+				node.setMidpoint(midpoint);
 				for (Instance example : examples) {
 					String importantAttributeValue = String.valueOf(Integer.parseInt(example.attributes
 							.get(importantAttribute.index)) > midpoint);
@@ -302,10 +296,12 @@ public class DecisionTreeImpl extends DecisionTree {
 	 * 	according to the order in data set list
 	 */
 	public String[] classify(DataSet test) {
-
-		// TODO: add code here
-
-		return null;
+		String[] classification = new String[test.instances.size()];
+		for (int i = 0; i < test.instances.size(); i++) {
+			Instance example = test.instances.get(i);
+			classification[i] = ((DecTreeNodeImpl)root).classify(example);
+		}
+		return classification;
 	}
 
 	@Override

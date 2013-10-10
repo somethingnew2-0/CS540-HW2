@@ -23,6 +23,9 @@ public class Attribute {
 			this.name = name;
 			this.type = type;
 		}
+		public String toString() {
+			return name;
+		}
 		public String getName() {
 			return name;
 		}
