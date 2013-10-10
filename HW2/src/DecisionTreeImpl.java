@@ -90,7 +90,7 @@ public class DecisionTreeImpl extends DecisionTree {
 					String importantAttributeValue = String.valueOf(Integer.parseInt(example.attributes
 							.get(importantAttribute.index)) > midpoint);
 					List<Instance> childExample = childExamples
-							.get(importantAttribute);
+							.get(importantAttributeValue);
 					if (childExample == null) {
 						childExample = new ArrayList<Instance>();
 						childExamples.put(importantAttributeValue, childExample);
@@ -102,7 +102,7 @@ public class DecisionTreeImpl extends DecisionTree {
 					String importantAttributeValue = example.attributes
 							.get(importantAttribute.index);
 					List<Instance> childExample = childExamples
-							.get(importantAttribute);
+							.get(importantAttributeValue);
 					if (childExample == null) {
 						childExample = new ArrayList<Instance>();
 						childExamples.put(importantAttributeValue, childExample);
@@ -173,7 +173,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			int examplesWithCredit = 0;
 
 			if (Attribute.Type.NUMERICAL.equals(attribute.attribute.getType())) {
-				double midpoint = midpoint(examples, i);
+				double midpoint = midpoint(examples, attribute.index);
 				
 				List<Instance> examplesGivenCredits = new ArrayList<Instance>();
 				for (int j = 0; j < examples.size(); j++) {
@@ -182,7 +182,7 @@ public class DecisionTreeImpl extends DecisionTree {
 						examplesGivenCredits.add(example);
 					}
 				}				
-				double midpointGivenCredits = midpoint(examplesGivenCredits, i);
+				double midpointGivenCredits = midpoint(examplesGivenCredits, attribute.index);
 				
 				for (int j = 0; j < examples.size(); j++) {
 					Instance example = examples.get(j);
