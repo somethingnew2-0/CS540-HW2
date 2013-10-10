@@ -84,16 +84,31 @@ public class DecisionTreeImpl extends DecisionTree {
 					importantAttribute.attribute.getName(),
 					parentAttributeValue, false);
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
-			for (Instance example : examples) {
-				String importantAttributeValue = example.attributes
-						.get(importantAttribute.index);
-				List<Instance> childExample = childExamples
-						.get(importantAttribute);
-				if (childExample == null) {
-					childExample = new ArrayList<Instance>();
-					childExamples.put(importantAttributeValue, childExample);
+			if (Attribute.Type.NUMERICAL.equals(importantAttribute.attribute.getType())) {
+				double midpoint = midpoint(examples, importantAttribute.index);
+				for (Instance example : examples) {
+					String importantAttributeValue = String.valueOf(Integer.parseInt(example.attributes
+							.get(importantAttribute.index)) > midpoint);
+					List<Instance> childExample = childExamples
+							.get(importantAttribute);
+					if (childExample == null) {
+						childExample = new ArrayList<Instance>();
+						childExamples.put(importantAttributeValue, childExample);
+					}
+					childExample.add(example);
 				}
-				childExample.add(example);
+			} else {
+				for (Instance example : examples) {
+					String importantAttributeValue = example.attributes
+							.get(importantAttribute.index);
+					List<Instance> childExample = childExamples
+							.get(importantAttribute);
+					if (childExample == null) {
+						childExample = new ArrayList<Instance>();
+						childExamples.put(importantAttributeValue, childExample);
+					}
+					childExample.add(example);
+				}
 			}
 			for (String attribute : childExamples.keySet()) {
 				node.children.add(trainTree(childExamples.get(attribute),
@@ -159,23 +174,34 @@ public class DecisionTreeImpl extends DecisionTree {
 
 			if (Attribute.Type.NUMERICAL.equals(attribute.attribute.getType())) {
 				double midpoint = midpoint(examples, i);
+				
+				List<Instance> examplesGivenCredits = new ArrayList<Instance>();
+				for (int j = 0; j < examples.size(); j++) {
+					Instance example = examples.get(j);
+					if ("1".equals(example.label)) {
+						examplesGivenCredits.add(example);
+					}
+				}				
+				double midpointGivenCredits = midpoint(examplesGivenCredits, i);
+				
 				for (int j = 0; j < examples.size(); j++) {
 					Instance example = examples.get(j);
 					int value = Integer.parseInt(example.attributes.get(i));
-					boolean larger = value > midpoint;
-					Double score = attributeScore.get(String.valueOf(larger));
+					String larger = String.valueOf(value > midpoint);
+					Double score = attributeScore.get(larger);
 					if (score == null) {
 						score = 0.0;
 					}
-					attributeScore.put(String.valueOf(larger), score + 1);
+					attributeScore.put(larger, score + 1);
 
 					if ("1".equals(example.label)) {
+						String largerGivenCredit = String.valueOf(value > midpointGivenCredits);
 						Double scoreGivenCredit = attributeScoreGivenCredit
-								.get(String.valueOf(larger));
+								.get(largerGivenCredit);
 						if (scoreGivenCredit == null) {
 							scoreGivenCredit = 0.0;
 						}
-						attributeScoreGivenCredit.put(String.valueOf(larger),
+						attributeScoreGivenCredit.put(largerGivenCredit,
 								scoreGivenCredit + 1);
 						examplesWithCredit++;
 					}
