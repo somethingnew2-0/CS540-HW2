@@ -15,6 +15,16 @@ import java.util.Map;
  */
 public class DecisionTreeImpl extends DecisionTree {
 	private DecTreeNode root = null;
+	private static final Map<Integer, String> ATTRIBUTE_NAMES = new HashMap<Integer, String>();
+	static {
+		ATTRIBUTE_NAMES.put(1, "Checking Account");
+		ATTRIBUTE_NAMES.put(2, "Credit History");
+		ATTRIBUTE_NAMES.put(3, "Purpose");
+		ATTRIBUTE_NAMES.put(4, "Qualitative");
+		ATTRIBUTE_NAMES.put(5, "Duration in Month");
+		ATTRIBUTE_NAMES.put(6, "Credit Amount");
+		ATTRIBUTE_NAMES.put(7, "Foreign Worker");
+	}
 
 	/**
 	 * Answers static questions about decision trees.
@@ -45,7 +55,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 		}
 
-		root = trainTree(train.instances, attributes, train.instances);
+		root = trainTree(train.instances, attributes, train.instances, "ROOT");
 	}
 
 	/**
@@ -64,17 +74,24 @@ public class DecisionTreeImpl extends DecisionTree {
 	}
 
 	private DecTreeNode trainTree(List<Instance> examples,
-			List<Attribute> attributes, List<Instance> parentExamples) {
+			List<Attribute> attributes, List<Instance> parentExamples, String parentAttribute) {
 		if (parentExamples == null || parentExamples.isEmpty()) {
 			return null;
 		} else if (examples == null || examples.isEmpty()) {
-			return plurality(parentExamples);
+			return plurality(parentExamples, parentAttribute);
 		} else if (attributes == null || attributes.isEmpty()) {
-			return plurality(examples);
+			return plurality(examples, parentAttribute);
 		} else {
 			int importantAttributeIndex = importance(attributes, parentExamples);
-			attributes.get(importantAttributeIndex).used = true;
-			DecTreeNode node = new DecTreeNode("1", "ROOT", "ROOT", false);
+			List<Attribute> childAttributes = new ArrayList<Attribute>(attributes.size());
+			for (int i = 0; i < attributes.size(); i++) {
+				Attribute attribute = attributes.get(i).clone();
+				if(i == importantAttributeIndex) {
+					attribute.used = true;
+				}
+				childAttributes.add(attribute);
+			}
+			DecTreeNode node = new DecTreeNode("", ATTRIBUTE_NAMES.get(importantAttributeIndex), parentAttribute, false);
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
 			for (Instance example : examples) {
 				String importantAttribute = example.attributes
@@ -89,13 +106,13 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 			for (String attribute : childExamples.keySet()) {
 				node.children.add(trainTree(childExamples.get(attribute),
-						attributes, examples));
+						childAttributes, examples, ATTRIBUTE_NAMES.get(importantAttributeIndex)));
 			}
 			return node;
 		}
 	}
 
-	private DecTreeNode plurality(List<Instance> examples) {
+	private DecTreeNode plurality(List<Instance> examples, String parentAttribute) {
 		Map<String, Integer> scores = new LinkedHashMap<String, Integer>();
 		for (Instance instance : examples) {
 			Integer score = scores.get(instance.label);
@@ -134,7 +151,8 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 		}
 		double creditEntropy = booleanEntropy(givenCredit / examples.size());
-
+		System.out.println("H(Credit) = "+creditEntropy);
+		
 		for (int i = 0; i < attributes.size(); i++) {
 			Attribute attribute = attributes.get(i);
 			if (!attribute.used) {
@@ -179,9 +197,9 @@ public class DecisionTreeImpl extends DecisionTree {
 					}
 				}
 
-				// Calculate I(Credit;Attribute) = H(Credit) -
-				// H(Credit|Attribute)
+				// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
 				double totalEntropy = creditEntropy - attributeEntropy;
+				System.out.println("I(Credit;"+ATTRIBUTE_NAMES.get(i+1)+") = "+totalEntropy);
 				if (totalEntropy > winningEntropy) {
 					winningEntropy = totalEntropy;
 					winningAttribute = i;
@@ -194,6 +212,9 @@ public class DecisionTreeImpl extends DecisionTree {
 	private static final double LOG_OF_2 = Math.log(2);
 
 	private double booleanEntropy(double q) {
+		if (q <= 0 || q >= 1) {
+			return 0;
+		}
 		return -(((q * Math.log(q)) / LOG_OF_2) + (((1 - q) * Math.log(1 - q)) / LOG_OF_2));
 	}
 
@@ -228,9 +249,7 @@ public class DecisionTreeImpl extends DecisionTree {
 	 *         
 	 */
 	public void print() {
-
-		// TODO: add code here
-
+		root.print(0);
 	}
 
 }
