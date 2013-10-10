@@ -1,5 +1,4 @@
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,16 +14,6 @@ import java.util.Map;
  */
 public class DecisionTreeImpl extends DecisionTree {
 	private DecTreeNode root = null;
-	private static final Map<Integer, String> ATTRIBUTE_NAMES = new HashMap<Integer, String>();
-	static {
-		ATTRIBUTE_NAMES.put(0, "Checking Account");
-		ATTRIBUTE_NAMES.put(1, "Credit History");
-		ATTRIBUTE_NAMES.put(2, "Purpose");
-		ATTRIBUTE_NAMES.put(3, "Qualitative");
-		ATTRIBUTE_NAMES.put(4, "Duration in Month");
-		ATTRIBUTE_NAMES.put(5, "Credit Amount");
-		ATTRIBUTE_NAMES.put(6, "Foreign Worker");
-	}
 
 	/**
 	 * Answers static questions about decision trees.
@@ -49,9 +38,7 @@ public class DecisionTreeImpl extends DecisionTree {
 		for (Instance instance : train.instances) {
 			for (int i = 0; i < instance.attributes.size(); i++) {
 				if (i > attributes.size() - 1) {
-					Attribute attribute = new Attribute();
-					attribute.index = i;
-					attributes.add(attribute);
+					attributes.add(new Attribute(i));
 				}
 				attributes.get(i).addValue(instance.attributes.get(i));
 			}
@@ -83,17 +70,18 @@ public class DecisionTreeImpl extends DecisionTree {
 		} else if (examples == null || examples.isEmpty()) {
 			return plurality(parentExamples, parentAttributeValue);
 		} else if (sameLabel(examples)) {
-			return new DecTreeNode(examples.get(0).label, "", parentAttributeValue, true);
+			return new DecTreeNode(examples.get(0).label, "",
+					parentAttributeValue, true);
 		} else if (attributes == null || attributes.isEmpty()) {
 			return plurality(examples, parentAttributeValue);
 		} else {
-			Attribute importantAttribute = importance(attributes,
-					examples);
+			Attribute importantAttribute = importance(attributes, examples);
+			System.out.println("Winning Attribute: "+importantAttribute.attribute.getName());
 			List<Attribute> childAttributes = new ArrayList<Attribute>(
 					attributes);
 			childAttributes.remove(importantAttribute);
 			DecTreeNode node = new DecTreeNode("",
-					ATTRIBUTE_NAMES.get(importantAttribute.index),
+					importantAttribute.attribute.getName(),
 					parentAttributeValue, false);
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
 			for (Instance example : examples) {
@@ -160,6 +148,7 @@ public class DecisionTreeImpl extends DecisionTree {
 
 		for (int i = 0; i < attributes.size(); i++) {
 			Attribute attribute = attributes.get(i);
+
 			// Use these LinkedHashMaps to add up probabilities for
 			// attributes both given credit and without
 			Map<String, Double> attributeScore = new LinkedHashMap<String, Double>(
@@ -167,23 +156,50 @@ public class DecisionTreeImpl extends DecisionTree {
 			Map<String, Double> attributeScoreGivenCredit = new LinkedHashMap<String, Double>(
 					attribute.values.size());
 			int examplesWithCredit = 0;
-			for (int j = 0; j < examples.size(); j++) {
-				Instance example = examples.get(j);
-				String value = example.attributes.get(i);
-				Double score = attributeScore.get(value);
-				if (score == null) {
-					score = 0.0;
-				}
-				attributeScore.put(value, score + 1);
 
-				if ("1".equals(example.label)) {
-					Double scoreGivenCredit = attributeScoreGivenCredit
-							.get(value);
-					if (scoreGivenCredit == null) {
-						scoreGivenCredit = 0.0;
+			if (Attribute.Type.NUMERICAL.equals(attribute.attribute.getType())) {
+				double midpoint = midpoint(examples, i);
+				for (int j = 0; j < examples.size(); j++) {
+					Instance example = examples.get(j);
+					int value = Integer.parseInt(example.attributes.get(i));
+					boolean larger = value > midpoint;
+					Double score = attributeScore.get(String.valueOf(larger));
+					if (score == null) {
+						score = 0.0;
 					}
-					attributeScoreGivenCredit.put(value, scoreGivenCredit + 1);
-					examplesWithCredit++;
+					attributeScore.put(String.valueOf(larger), score + 1);
+
+					if ("1".equals(example.label)) {
+						Double scoreGivenCredit = attributeScoreGivenCredit
+								.get(String.valueOf(larger));
+						if (scoreGivenCredit == null) {
+							scoreGivenCredit = 0.0;
+						}
+						attributeScoreGivenCredit.put(String.valueOf(larger),
+								scoreGivenCredit + 1);
+						examplesWithCredit++;
+					}
+				}
+			} else {
+				for (int j = 0; j < examples.size(); j++) {
+					Instance example = examples.get(j);
+					String value = example.attributes.get(i);
+					Double score = attributeScore.get(value);
+					if (score == null) {
+						score = 0.0;
+					}
+					attributeScore.put(value, score + 1);
+
+					if ("1".equals(example.label)) {
+						Double scoreGivenCredit = attributeScoreGivenCredit
+								.get(value);
+						if (scoreGivenCredit == null) {
+							scoreGivenCredit = 0.0;
+						}
+						attributeScoreGivenCredit.put(value,
+								scoreGivenCredit + 1);
+						examplesWithCredit++;
+					}
 				}
 			}
 
@@ -201,12 +217,13 @@ public class DecisionTreeImpl extends DecisionTree {
 
 			// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
 			double totalEntropy = creditEntropy - attributeEntropy;
-			System.out.println("I(Credit;" + ATTRIBUTE_NAMES.get(i) + ") = "
-					+ totalEntropy);
+			System.out.println("I(Credit;" + attribute.attribute.getName()
+					+ ") = " + totalEntropy);
 			if (totalEntropy > winningEntropy) {
 				winningEntropy = totalEntropy;
 				winningAttribute = attribute;
 			}
+
 		}
 		return winningAttribute;
 	}
@@ -233,22 +250,23 @@ public class DecisionTreeImpl extends DecisionTree {
 		}
 		return true;
 	}
-	
+
 	private double midpoint(List<Instance> examples, int attributeIndex) {
 		if (examples == null || examples.isEmpty()) {
 			return 0.0;
 		}
 		double max = Double.NEGATIVE_INFINITY, min = Double.POSITIVE_INFINITY;
 		for (Instance instance : examples) {
-			int attribute = Integer.parseInt(instance.attributes.get(attributeIndex));
-			if(attribute > max) {
+			int attribute = Integer.parseInt(instance.attributes
+					.get(attributeIndex));
+			if (attribute > max) {
 				max = attribute;
 			}
 			if (attribute < min) {
 				min = attribute;
 			}
 		}
-		return 0.5*(max+min);
+		return 0.5 * (max + min);
 	}
 
 	@Override
