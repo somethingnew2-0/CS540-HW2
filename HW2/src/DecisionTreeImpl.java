@@ -17,13 +17,13 @@ public class DecisionTreeImpl extends DecisionTree {
 	private DecTreeNode root = null;
 	private static final Map<Integer, String> ATTRIBUTE_NAMES = new HashMap<Integer, String>();
 	static {
-		ATTRIBUTE_NAMES.put(1, "Checking Account");
-		ATTRIBUTE_NAMES.put(2, "Credit History");
-		ATTRIBUTE_NAMES.put(3, "Purpose");
-		ATTRIBUTE_NAMES.put(4, "Qualitative");
-		ATTRIBUTE_NAMES.put(5, "Duration in Month");
-		ATTRIBUTE_NAMES.put(6, "Credit Amount");
-		ATTRIBUTE_NAMES.put(7, "Foreign Worker");
+		ATTRIBUTE_NAMES.put(0, "Checking Account");
+		ATTRIBUTE_NAMES.put(1, "Credit History");
+		ATTRIBUTE_NAMES.put(2, "Purpose");
+		ATTRIBUTE_NAMES.put(3, "Qualitative");
+		ATTRIBUTE_NAMES.put(4, "Duration in Month");
+		ATTRIBUTE_NAMES.put(5, "Credit Amount");
+		ATTRIBUTE_NAMES.put(6, "Foreign Worker");
 	}
 
 	/**
@@ -49,7 +49,9 @@ public class DecisionTreeImpl extends DecisionTree {
 		for (Instance instance : train.instances) {
 			for (int i = 0; i < instance.attributes.size(); i++) {
 				if (i > attributes.size() - 1) {
-					attributes.add(new Attribute());
+					Attribute attribute = new Attribute();
+					attribute.index = i;
+					attributes.add(attribute);
 				}
 				attributes.get(i).addValue(instance.attributes.get(i));
 			}
@@ -74,45 +76,47 @@ public class DecisionTreeImpl extends DecisionTree {
 	}
 
 	private DecTreeNode trainTree(List<Instance> examples,
-			List<Attribute> attributes, List<Instance> parentExamples, String parentAttribute) {
+			List<Attribute> attributes, List<Instance> parentExamples,
+			String parentAttributeValue) {
 		if (parentExamples == null || parentExamples.isEmpty()) {
 			return null;
 		} else if (examples == null || examples.isEmpty()) {
-			return plurality(parentExamples, parentAttribute);
+			return plurality(parentExamples, parentAttributeValue);
+		} else if (sameLabel(examples)) {
+			return new DecTreeNode(examples.get(0).label, "", parentAttributeValue, true);
 		} else if (attributes == null || attributes.isEmpty()) {
-			return plurality(examples, parentAttribute);
+			return plurality(examples, parentAttributeValue);
 		} else {
-			int importantAttributeIndex = importance(attributes, parentExamples);
-			List<Attribute> childAttributes = new ArrayList<Attribute>(attributes.size());
-			for (int i = 0; i < attributes.size(); i++) {
-				Attribute attribute = attributes.get(i).clone();
-				if(i == importantAttributeIndex) {
-					attribute.used = true;
-				}
-				childAttributes.add(attribute);
-			}
-			DecTreeNode node = new DecTreeNode("", ATTRIBUTE_NAMES.get(importantAttributeIndex), parentAttribute, false);
+			Attribute importantAttribute = importance(attributes,
+					parentExamples);
+			List<Attribute> childAttributes = new ArrayList<Attribute>(
+					attributes);
+			childAttributes.remove(importantAttribute);
+			DecTreeNode node = new DecTreeNode("",
+					ATTRIBUTE_NAMES.get(importantAttribute.index),
+					parentAttributeValue, false);
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
 			for (Instance example : examples) {
-				String importantAttribute = example.attributes
-						.get(importantAttributeIndex);
+				String importantAttributeValue = example.attributes
+						.get(importantAttribute.index);
 				List<Instance> childExample = childExamples
 						.get(importantAttribute);
 				if (childExample == null) {
 					childExample = new ArrayList<Instance>();
-					childExamples.put(importantAttribute, childExample);
+					childExamples.put(importantAttributeValue, childExample);
 				}
 				childExample.add(example);
 			}
 			for (String attribute : childExamples.keySet()) {
 				node.children.add(trainTree(childExamples.get(attribute),
-						childAttributes, examples, ATTRIBUTE_NAMES.get(importantAttributeIndex)));
+						childAttributes, examples, attribute));
 			}
 			return node;
 		}
 	}
 
-	private DecTreeNode plurality(List<Instance> examples, String parentAttribute) {
+	private DecTreeNode plurality(List<Instance> examples,
+			String parentAttributeValue) {
 		Map<String, Integer> scores = new LinkedHashMap<String, Integer>();
 		for (Instance instance : examples) {
 			Integer score = scores.get(instance.label);
@@ -136,12 +140,13 @@ public class DecisionTreeImpl extends DecisionTree {
 				}
 			}
 		}
-		return new DecTreeNode(winner, winner, winner, true);
+		return new DecTreeNode(winner, "", parentAttributeValue, true);
 	}
 
-	private int importance(List<Attribute> attributes, List<Instance> examples) {
+	private Attribute importance(List<Attribute> attributes,
+			List<Instance> examples) {
 		double winningEntropy = Double.NEGATIVE_INFINITY;
-		int winningAttribute = -1;
+		Attribute winningAttribute = null;
 
 		// Calculate H(Credit)
 		double givenCredit = 0;
@@ -151,59 +156,56 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 		}
 		double creditEntropy = booleanEntropy(givenCredit / examples.size());
-		System.out.println("H(Credit) = "+creditEntropy);
-		
+		System.out.println("H(Credit) = " + creditEntropy);
+
 		for (int i = 0; i < attributes.size(); i++) {
 			Attribute attribute = attributes.get(i);
-			if (!attribute.used) {
-				// Use these LinkedHashMaps to add up probabilities for
-				// attributes both given credit and without
-				Map<String, Double> attributeScore = new LinkedHashMap<String, Double>(
-						attribute.values.size());
-				Map<String, Double> attributeScoreGivenCredit = new LinkedHashMap<String, Double>(
-						attribute.values.size());
-				int examplesWithCredit = 0;
-				for (int j = 0; j < examples.size(); j++) {
-					Instance example = examples.get(j);
-					String value = example.attributes.get(i);
-					Double score = attributeScore.get(value);
-					if (score == null) {
-						score = 0.0;
-					}
-					attributeScore.put(value, score + 1);
-
-					if ("1".equals(example.label)) {
-						Double scoreGivenCredit = attributeScoreGivenCredit
-								.get(value);
-						if (scoreGivenCredit == null) {
-							scoreGivenCredit = 0.0;
-						}
-						attributeScoreGivenCredit.put(value,
-								scoreGivenCredit + 1);
-						examplesWithCredit++;
-					}
+			// Use these LinkedHashMaps to add up probabilities for
+			// attributes both given credit and without
+			Map<String, Double> attributeScore = new LinkedHashMap<String, Double>(
+					attribute.values.size());
+			Map<String, Double> attributeScoreGivenCredit = new LinkedHashMap<String, Double>(
+					attribute.values.size());
+			int examplesWithCredit = 0;
+			for (int j = 0; j < examples.size(); j++) {
+				Instance example = examples.get(j);
+				String value = example.attributes.get(i);
+				Double score = attributeScore.get(value);
+				if (score == null) {
+					score = 0.0;
 				}
+				attributeScore.put(value, score + 1);
 
-				// Calculate H(Credit|Attribute)
-				double attributeEntropy = 0;
-				for (String value : attributeScore.keySet()) {
-					Double score = attributeScore.get(value);
+				if ("1".equals(example.label)) {
 					Double scoreGivenCredit = attributeScoreGivenCredit
 							.get(value);
-					if (score != null && scoreGivenCredit != null && score != 0
-							&& scoreGivenCredit != 0) {
-						attributeEntropy += (score / examples.size() * booleanEntropy(scoreGivenCredit
-								/ examplesWithCredit));
+					if (scoreGivenCredit == null) {
+						scoreGivenCredit = 0.0;
 					}
+					attributeScoreGivenCredit.put(value, scoreGivenCredit + 1);
+					examplesWithCredit++;
 				}
+			}
 
-				// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
-				double totalEntropy = creditEntropy - attributeEntropy;
-				System.out.println("I(Credit;"+ATTRIBUTE_NAMES.get(i+1)+") = "+totalEntropy);
-				if (totalEntropy > winningEntropy) {
-					winningEntropy = totalEntropy;
-					winningAttribute = i;
+			// Calculate H(Credit|Attribute)
+			double attributeEntropy = 0;
+			for (String value : attributeScore.keySet()) {
+				Double score = attributeScore.get(value);
+				Double scoreGivenCredit = attributeScoreGivenCredit.get(value);
+				if (score != null && scoreGivenCredit != null && score != 0
+						&& scoreGivenCredit != 0) {
+					attributeEntropy += (score / examples.size() * booleanEntropy(scoreGivenCredit
+							/ examplesWithCredit));
 				}
+			}
+
+			// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
+			double totalEntropy = creditEntropy - attributeEntropy;
+			System.out.println("I(Credit;" + ATTRIBUTE_NAMES.get(i) + ") = "
+					+ totalEntropy);
+			if (totalEntropy > winningEntropy) {
+				winningEntropy = totalEntropy;
+				winningAttribute = attribute;
 			}
 		}
 		return winningAttribute;
@@ -216,6 +218,20 @@ public class DecisionTreeImpl extends DecisionTree {
 			return 0;
 		}
 		return -(((q * Math.log(q)) / LOG_OF_2) + (((1 - q) * Math.log(1 - q)) / LOG_OF_2));
+	}
+
+	private boolean sameLabel(List<Instance> examples) {
+		if (examples == null || examples.isEmpty()) {
+			return true;
+		}
+		boolean positive = "1".equals(examples.get(0));
+		for (Instance instance : examples) {
+			if (("0".equals(instance.label) && positive)
+					|| ("1".equals(instance.label) && !positive)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	@Override
