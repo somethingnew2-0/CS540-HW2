@@ -58,7 +58,6 @@ public class DecisionTreeImpl extends DecisionTree {
 	 */
 	DecisionTreeImpl(DataSet train, DataSet tune) {
 		this(train);
-		// TODO: add code here
 
 	}
 
@@ -81,8 +80,8 @@ public class DecisionTreeImpl extends DecisionTree {
 				double midpoint = midpoint(examples, importantAttribute.index);
 				node.setMidpoint(midpoint);
 				for (Instance example : examples) {
-					String importantAttributeValue = String.valueOf(Integer.parseInt(example.attributes
-							.get(importantAttribute.index)) > midpoint);
+					String importantAttributeValue = (Integer.parseInt(example.attributes
+							.get(importantAttribute.index)) < midpoint?"A":"B");
 					List<Instance> childExample = childExamples
 							.get(importantAttributeValue);
 					if (childExample == null) {

@@ -15,15 +15,13 @@ public class DecTreeNodeImpl extends DecTreeNode {
 	public String classify(Instance example) {
 		String childExampleAttributeValue = example.attributes.get(attribute.index);
 		if(Attribute.Type.NUMERICAL.equals(attribute.attribute.getType())) {
-			boolean larger = Integer.parseInt(childExampleAttributeValue) > midpoint;
 			for (DecTreeNode childNode : children) {
-				if(Boolean.parseBoolean(childNode.parentAttributeValue) == larger) {
+				if("A".equals(childNode.parentAttributeValue) == (Integer.parseInt(childExampleAttributeValue) < midpoint)) {
 					if(childNode instanceof DecTreeNodeImpl) {
 						return ((DecTreeNodeImpl)childNode).classify(example);
 					} else {
 						return childNode.label;
 					}
-					
 				}
 			}
 		} else {
