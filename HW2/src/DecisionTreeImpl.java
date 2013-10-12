@@ -66,8 +66,10 @@ public class DecisionTreeImpl extends DecisionTree {
 	private DecTreeNode trainTree(List<Instance> examples,
 			List<Attribute> attributes, List<Instance> parentExamples,
 			String parentAttributeValue) {
-		if (examples.isEmpty() || attributes.isEmpty() || sameLabel(examples)) {
+		if (examples.isEmpty()) {
 			return new LeafDecTreeNode(plurality(parentExamples), parentAttributeValue);
+		} else if(attributes.isEmpty() || sameLabel(examples)) {
+			return new LeafDecTreeNode(plurality(examples), parentAttributeValue);
 		} else {
 			Attribute importantAttribute = importance(attributes, examples);
 			//System.out.println("Winning Attribute: "+importantAttribute.category.getName());
@@ -131,22 +133,28 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 			scores.put(instance.label, score + 1);
 		}
-		int winningScore = Integer.MIN_VALUE;
-		String winner = null;
-		for (String label : scores.keySet()) {
-			if (!label.equals(winner)) {
-				int score = scores.get(label);
-				if (winningScore == score) {
-					if (label.compareToIgnoreCase(winner) < 0) {
+		if(scores.isEmpty()) {
+			return "1";
+		} else if (scores.size() == 1) {
+			return scores.keySet().iterator().next();
+		} else {
+			int winningScore = Integer.MIN_VALUE;
+			String winner = null;
+			for (String label : scores.keySet()) {
+				if (!label.equals(winner)) {
+					int score = scores.get(label);
+					if (winningScore == score) {
+						if (label.compareToIgnoreCase(winner) < 0) {
+							winner = label;
+						}
+					} else if (winningScore < score) {
 						winner = label;
+						winningScore = score;
 					}
-				} else if (winningScore < score) {
-					winner = label;
-					winningScore = score;
 				}
 			}
+			return winner;
 		}
-		return winner;
 	}
 
 	private Attribute importance(List<Attribute> attributes,
@@ -318,6 +326,7 @@ public class DecisionTreeImpl extends DecisionTree {
 	
 	private void prune(DataSet tune) {
 		double originalAccuracy = calcTestAccuracy(tune, classify(tune));
+//		System.out.println("Original Accuracy: "+originalAccuracy);
 		// Can't really go about pruning if the root isn't internal
 		if(root instanceof InternalDecTreeNode) {			
 			InternalDecTreeNode nodeToPrune = null, parentNodeToPrune = null;			
@@ -330,6 +339,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			root = prunedLeafNode;
 			// Calculate the test accuracy with this node pruned
 			double accuracy = calcTestAccuracy(tune, classify(tune));
+//			System.out.println("Prune Accuracy: "+accuracy);
 			if(accuracy >= maxAccuracy) {
 				maxAccuracy = accuracy;
 				nodeToPrune = (InternalDecTreeNode)savedInternalNode;				
@@ -354,6 +364,7 @@ public class DecisionTreeImpl extends DecisionTree {
 						internalNode.addChild(prunedLeafNode);
 						
 						accuracy = calcTestAccuracy(tune, classify(tune));
+//						System.out.println("Prune Accuracy: "+accuracy);
 						if(accuracy >= maxAccuracy) {
 							maxAccuracy = accuracy;
 							nodeToPrune = savedInternalNode;
@@ -367,6 +378,8 @@ public class DecisionTreeImpl extends DecisionTree {
 					}
 				}
 			}
+			
+			// Prune the node if it's better than original accuracy
 			if(nodeToPrune != null && maxAccuracy > originalAccuracy) {
 				if(parentNodeToPrune != null) {
 					parentNodeToPrune.removeChild(nodeToPrune);
@@ -382,23 +395,7 @@ public class DecisionTreeImpl extends DecisionTree {
 	}
 
 	private double calcTestAccuracy(DataSet test, String[] results) {
-		if(results == null) {
-			 System.out.println("Error in calculating accuracy: " +
-			 		"You must implement the classify method");
-			 return 0.0;
-		}
-		
 		List<Instance> testInsList = test.instances;
-		if(testInsList.size() == 0) {
-			System.out.println("Error: Size of test set is 0");
-			return 0.0;
-		}
-		if(testInsList.size() > results.length) {
-			System.out.println("Error: The number of predictions is inconsistant " +
-					"with the number of instances in test set, please check it");
-			return 0.0;
-		}
-		
 		int correct = 0, total = testInsList.size();
 		for(int i = 0; i < testInsList.size(); i ++)
 			if(testInsList.get(i).label.equals(results[i]))
