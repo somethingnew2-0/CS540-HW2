@@ -162,7 +162,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 		}
 		double creditEntropy = booleanEntropy(givenCredit / examples.size());
-		//System.out.println("H(Credit) = " + creditEntropy);
+//		System.out.println("H(Credit) = " + creditEntropy);
 
 		for (int i = 0; i < attributes.size(); i++) {
 			Attribute attribute = attributes.get(i);
@@ -246,7 +246,7 @@ public class DecisionTreeImpl extends DecisionTree {
 
 			// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
 			double totalEntropy = creditEntropy - attributeEntropy;
-			//System.out.println("I(Credit;" + attribute.category.getName()	+ ") = " + totalEntropy);
+//			System.out.println("I(Credit;" + attribute.category.getName()	+ ") = " + totalEntropy);
 			if (totalEntropy > winningEntropy) {
 				winningEntropy = totalEntropy;
 				winningAttribute = attribute;
@@ -317,8 +317,6 @@ public class DecisionTreeImpl extends DecisionTree {
 	}
 	
 	private void prune(DataSet tune) {
-		root.print(0);
-		System.out.println("--------------------------------------------");
 		double originalAccuracy = calcTestAccuracy(tune, classify(tune));
 		// Can't really go about pruning if the root isn't internal
 		if(root instanceof InternalDecTreeNode) {			
