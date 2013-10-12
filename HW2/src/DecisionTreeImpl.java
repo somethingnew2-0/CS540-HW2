@@ -72,13 +72,11 @@ public class DecisionTreeImpl extends DecisionTree {
 			List<Attribute> childAttributes = new ArrayList<Attribute>(
 					attributes);
 			childAttributes.remove(importantAttribute);
-			DecTreeNodeImpl node = new DecTreeNodeImpl("",
-					importantAttribute,
-					parentAttributeValue, false);
+			InternalDecTreeNode node;
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
 			if (Attribute.Type.NUMERICAL.equals(importantAttribute.attribute.getType())) {
 				double midpoint = midpoint(examples, importantAttribute.index);
-				node.setMidpoint(midpoint);
+				node = new NumericalInternalDecTreeNode(importantAttribute, parentAttributeValue, midpoint);
 				for (Instance example : examples) {
 					String importantAttributeValue = (Integer.parseInt(example.attributes
 							.get(importantAttribute.index)) < midpoint?"A":"B");
@@ -91,6 +89,7 @@ public class DecisionTreeImpl extends DecisionTree {
 					childExample.add(example);
 				}
 			} else {
+				node = new InternalDecTreeNode(importantAttribute, parentAttributeValue);
 				for (Instance example : examples) {
 					String importantAttributeValue = example.attributes
 							.get(importantAttribute.index);
@@ -136,7 +135,7 @@ public class DecisionTreeImpl extends DecisionTree {
 				}
 			}
 		}
-		return new DecTreeNode(winner, "", parentAttributeValue, true);
+		return new LeafDecTreeNode(winner, parentAttributeValue);
 	}
 
 	private Attribute importance(List<Attribute> attributes,
@@ -298,7 +297,11 @@ public class DecisionTreeImpl extends DecisionTree {
 		String[] classification = new String[test.instances.size()];
 		for (int i = 0; i < test.instances.size(); i++) {
 			Instance example = test.instances.get(i);
-			classification[i] = ((DecTreeNodeImpl)root).classify(example);
+			if(root instanceof InternalDecTreeNode) {
+				classification[i] = ((InternalDecTreeNode)root).classify(example);
+			} else {
+				classification[i] = root.label; 
+			}
 		}
 		return classification;
 	}
