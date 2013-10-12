@@ -46,7 +46,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 		}
 
-		root = trainTree(train.instances, attributes, train.instances, "ROOT");
+		root = trainTree(train.instances, attributes, train.instances, "Root");
 	}
 
 	/**
@@ -90,10 +90,10 @@ public class DecisionTreeImpl extends DecisionTree {
 				}
 				
 				List<DecTreeNode> children = new ArrayList<DecTreeNode>();
-				children.add(trainTree(positiveChildExamples,
-						childAttributes, examples, "B"));
-				children.add(trainTree(positiveChildExamples,
+				children.add(trainTree(negativeChildExamples,
 						childAttributes, examples, "A"));
+				children.add(trainTree(positiveChildExamples,
+						childAttributes, examples, "B"));				
 				
 				return new NumericalInternalDecTreeNode(plurality(examples), importantAttribute, parentAttributeValue, children, midpoint);
 			} else {
@@ -255,7 +255,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
 			double totalEntropy = creditEntropy - attributeEntropy;
 //			System.out.println("I(Credit;" + attribute.category.getName()	+ ") = " + totalEntropy);
-			if (totalEntropy > winningEntropy) {
+			if (totalEntropy >= winningEntropy) {
 				winningEntropy = totalEntropy;
 				winningAttribute = attribute;
 			}
