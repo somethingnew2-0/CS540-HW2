@@ -1,7 +1,9 @@
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 
 /**
  * Fill in the implementation details of the class DecisionTree using this file.
@@ -58,7 +60,7 @@ public class DecisionTreeImpl extends DecisionTree {
 	 */
 	DecisionTreeImpl(DataSet train, DataSet tune) {
 		this(train);
-
+		prune(tune);
 	}
 
 	private DecTreeNode trainTree(List<Instance> examples,
@@ -305,7 +307,61 @@ public class DecisionTreeImpl extends DecisionTree {
 		}
 		return classification;
 	}
+	
+	private void prune(DataSet tune) {	
+		// Can't really go about pruning if the root isn't internal
+		if(root instanceof InternalDecTreeNode) {			
+			InternalDecTreeNode nodeToPrune = (InternalDecTreeNode)root;			
+			double maxAccuracy = calcTestAccuracy(tune, classify(tune));
+			
+			// Do a BFS search to determine which node to prune
+			Queue<InternalDecTreeNode> queue = new LinkedList<InternalDecTreeNode>();
+			queue.add((InternalDecTreeNode)root);
+			while(!queue.isEmpty()) {
+				InternalDecTreeNode internalNode = queue.remove();
+				
+				// Calculate the test accuracy with this node pruned
+				double accuracy = calcTestAccuracy(tune, classify(tune));
+				if(accuracy >= maxAccuracy) {
+					maxAccuracy = accuracy;
+					nodeToPrune = internalNode;
+				}
+				
+				for (DecTreeNode child : internalNode.children) {
+					if(child instanceof InternalDecTreeNode) {
+						queue.add((InternalDecTreeNode)child);
+					}
+				}
+			}
+		}
+	}
 
+	private double calcTestAccuracy(DataSet test, String[] results) {
+		if(results == null) {
+			 System.out.println("Error in calculating accuracy: " +
+			 		"You must implement the classify method");
+			 return 0.0;
+		}
+		
+		List<Instance> testInsList = test.instances;
+		if(testInsList.size() == 0) {
+			System.out.println("Error: Size of test set is 0");
+			return 0.0;
+		}
+		if(testInsList.size() > results.length) {
+			System.out.println("Error: The number of predictions is inconsistant " +
+					"with the number of instances in test set, please check it");
+			return 0.0;
+		}
+		
+		int correct = 0, total = testInsList.size();
+		for(int i = 0; i < testInsList.size(); i ++)
+			if(testInsList.get(i).label.equals(results[i]))
+				correct ++;
+		
+		return correct * 1.0 / total;
+	}
+	
 	@Override
 	/**
 	 * Prints the tree in specified format. It is recommended, but not
