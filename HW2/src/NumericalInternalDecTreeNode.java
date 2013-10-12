@@ -12,7 +12,7 @@ public class NumericalInternalDecTreeNode extends InternalDecTreeNode {
 	
 	public String classify(Instance example) {
 		String childExampleAttributeValue = example.attributes.get(attribute.index);
-		if(Attribute.Type.NUMERICAL.equals(attribute.attribute.getType())) {
+		if(Attribute.Type.NUMERICAL.equals(attribute.category.getType())) {
 			for (DecTreeNode childNode : children) {
 				if("A".equals(childNode.parentAttributeValue) == (Integer.parseInt(childExampleAttributeValue) < midpoint)) {
 					if(childNode instanceof InternalDecTreeNode) {

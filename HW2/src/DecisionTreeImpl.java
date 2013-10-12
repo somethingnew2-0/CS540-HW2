@@ -68,13 +68,13 @@ public class DecisionTreeImpl extends DecisionTree {
 			return plurality(parentExamples, parentAttributeValue);
 		} else {
 			Attribute importantAttribute = importance(attributes, examples);
-			System.out.println("Winning Attribute: "+importantAttribute.attribute.getName());
+			System.out.println("Winning Attribute: "+importantAttribute.category.getName());
 			List<Attribute> childAttributes = new ArrayList<Attribute>(
 					attributes);
 			childAttributes.remove(importantAttribute);
 			InternalDecTreeNode node;
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
-			if (Attribute.Type.NUMERICAL.equals(importantAttribute.attribute.getType())) {
+			if (Attribute.Type.NUMERICAL.equals(importantAttribute.category.getType())) {
 				double midpoint = midpoint(examples, importantAttribute.index);
 				node = new NumericalInternalDecTreeNode(importantAttribute, parentAttributeValue, midpoint);
 				for (Instance example : examples) {
@@ -164,7 +164,7 @@ public class DecisionTreeImpl extends DecisionTree {
 					attribute.values.size());
 			int examplesWithCredit = 0;
 
-			if (Attribute.Type.NUMERICAL.equals(attribute.attribute.getType())) {
+			if (Attribute.Type.NUMERICAL.equals(attribute.category.getType())) {
 				double midpoint = midpoint(examples, attribute.index);
 				
 				List<Instance> examplesGivenCredits = new ArrayList<Instance>();
@@ -235,7 +235,7 @@ public class DecisionTreeImpl extends DecisionTree {
 
 			// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
 			double totalEntropy = creditEntropy - attributeEntropy;
-			System.out.println("I(Credit;" + attribute.attribute.getName()
+			System.out.println("I(Credit;" + attribute.category.getName()
 					+ ") = " + totalEntropy);
 			if (totalEntropy > winningEntropy) {
 				winningEntropy = totalEntropy;

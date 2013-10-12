@@ -4,7 +4,7 @@ public class InternalDecTreeNode extends DecTreeNode {
 	
 	InternalDecTreeNode(Attribute _attribute,
 			String _parentAttributeValue) {
-		super("", _attribute.attribute.getName(), _parentAttributeValue, false);
+		super("", _attribute.category.getName(), _parentAttributeValue, false);
 		this.attribute = _attribute;
 	}
 

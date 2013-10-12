@@ -8,7 +8,7 @@ public class Attribute {
 		NUMERICAL;
 	}
 	
-	public enum Attributes {
+	public enum Category {
 		CHECKING("Checking Account", Type.QUALITATIVE),
 		HISTORY("Credit History", Type.QUALITATIVE),
 		PURPOSE("Purpose", Type.QUALITATIVE),
@@ -19,7 +19,7 @@ public class Attribute {
 		
 		private String name;
 		private Type type;
-		private Attributes(String name, Type type) {
+		private Category(String name, Type type) {
 			this.name = name;
 			this.type = type;
 		}
@@ -32,18 +32,18 @@ public class Attribute {
 		public Type getType() {
 			return type;
 		}
-		public static Attribute.Attributes getAttribute(int index) {
+		public static Attribute.Category getAttribute(int index) {
 			return values()[index];
 		}
 	}
 	
 	public int index;
 	public Set<String> values = new LinkedHashSet<String>();
-	public Attributes attribute;
+	public Category category;
 	
 	public Attribute(int index) {
 		this.index = index;
-		this.attribute = Attributes.getAttribute(index);
+		this.category = Category.getAttribute(index);
 	}
 
 	public void addValue(String value) {
