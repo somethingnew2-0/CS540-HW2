@@ -74,24 +74,28 @@ public class DecisionTreeImpl extends DecisionTree {
 			List<Attribute> childAttributes = new ArrayList<Attribute>(
 					attributes);
 			childAttributes.remove(importantAttribute);
-			InternalDecTreeNode node;
-			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
+			
 			if (Attribute.Type.NUMERICAL.equals(importantAttribute.category.getType())) {
-				double midpoint = midpoint(examples, importantAttribute.index);
-				node = new NumericalInternalDecTreeNode(plurality(examples), importantAttribute, parentAttributeValue, midpoint);
+				double midpoint = midpoint(examples, importantAttribute.index);				
+				
+				List<Instance> positiveChildExamples = new ArrayList<Instance>(), negativeChildExamples = new ArrayList<Instance>();
 				for (Instance example : examples) {
-					String importantAttributeValue = (Integer.parseInt(example.attributes
-							.get(importantAttribute.index)) < midpoint?"A":"B");
-					List<Instance> childExample = childExamples
-							.get(importantAttributeValue);
-					if (childExample == null) {
-						childExample = new ArrayList<Instance>();
-						childExamples.put(importantAttributeValue, childExample);
-					}
-					childExample.add(example);
+					if(Integer.parseInt(example.attributes.get(importantAttribute.index)) > midpoint) {
+						positiveChildExamples.add(example);
+					} else {
+						negativeChildExamples.add(example);
+					}					
 				}
+				
+				List<DecTreeNode> children = new ArrayList<DecTreeNode>();
+				children.add(trainTree(positiveChildExamples,
+						childAttributes, examples, "B"));
+				children.add(trainTree(positiveChildExamples,
+						childAttributes, examples, "A"));
+				
+				return new NumericalInternalDecTreeNode(plurality(examples), importantAttribute, parentAttributeValue, children, midpoint);
 			} else {
-				node = new InternalDecTreeNode(plurality(examples), importantAttribute, parentAttributeValue);
+				Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
 				for (Instance example : examples) {
 					String importantAttributeValue = example.attributes
 							.get(importantAttribute.index);
@@ -103,12 +107,18 @@ public class DecisionTreeImpl extends DecisionTree {
 					}
 					childExample.add(example);
 				}
+				
+				List<DecTreeNode> children = new ArrayList<DecTreeNode>();
+				for (String attribute : importantAttribute.values) {
+					List<Instance> childExamplesForAttribute = childExamples.get(attribute);
+					if(childExamplesForAttribute == null) {
+						childExamplesForAttribute = new ArrayList<Instance>();
+					}
+					children.add(trainTree(childExamplesForAttribute,
+							childAttributes, examples, attribute));
+				}
+				return new InternalDecTreeNode(plurality(examples), importantAttribute, parentAttributeValue, children);
 			}
-			for (String attribute : childExamples.keySet()) {
-				node.children.add(trainTree(childExamples.get(attribute),
-						childAttributes, examples, attribute));
-			}
-			return node;
 		}
 	}
 
@@ -359,7 +369,7 @@ public class DecisionTreeImpl extends DecisionTree {
 					}
 				}
 			}
-			if(nodeToPrune != null) {
+			if(nodeToPrune != null && maxAccuracy > originalAccuracy) {
 				if(parentNodeToPrune != null) {
 					parentNodeToPrune.removeChild(nodeToPrune);
 					parentNodeToPrune.addChild(new LeafDecTreeNode(nodeToPrune.label, nodeToPrune.parentAttributeValue));

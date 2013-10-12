@@ -1,11 +1,13 @@
+import java.util.List;
+
 
 public class NumericalInternalDecTreeNode extends InternalDecTreeNode {
 	
 	double midpoint;
 
 	NumericalInternalDecTreeNode(String _label, Attribute _attribute,
-			String _parentAttributeValue, double _midpoint) {
-		super(_label, _attribute, _parentAttributeValue);
+			String _parentAttributeValue, List<DecTreeNode> _children, double _midpoint) {
+		super(_label, _attribute, _parentAttributeValue, _children);
 		this.midpoint = _midpoint;
 	}
 	

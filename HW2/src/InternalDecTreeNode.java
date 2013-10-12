@@ -1,10 +1,13 @@
+import java.util.List;
+
 
 public class InternalDecTreeNode extends DecTreeNode {
 	Attribute attribute;
 	
-	InternalDecTreeNode(String _label, Attribute _attribute, String _parentAttributeValue) {
+	InternalDecTreeNode(String _label, Attribute _attribute, String _parentAttributeValue, List<DecTreeNode> _children) {
 		super(_label, _attribute.category.getName(), _parentAttributeValue, false);
 		this.attribute = _attribute;
+		this.children = _children;
 	}
 	
 	public void returnChild(int index, DecTreeNode child) {
