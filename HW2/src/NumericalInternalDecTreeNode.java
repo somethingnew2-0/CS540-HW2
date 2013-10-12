@@ -3,9 +3,9 @@ public class NumericalInternalDecTreeNode extends InternalDecTreeNode {
 	
 	double midpoint;
 
-	NumericalInternalDecTreeNode(Attribute _attribute,
+	NumericalInternalDecTreeNode(String _label, Attribute _attribute,
 			String _parentAttributeValue, double _midpoint) {
-		super(_attribute, _parentAttributeValue);
+		super(_label, _attribute, _parentAttributeValue);
 		this.midpoint = _midpoint;
 	}
 	

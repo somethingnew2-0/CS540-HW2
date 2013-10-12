@@ -2,10 +2,17 @@
 public class InternalDecTreeNode extends DecTreeNode {
 	Attribute attribute;
 	
-	InternalDecTreeNode(Attribute _attribute,
-			String _parentAttributeValue) {
-		super("", _attribute.category.getName(), _parentAttributeValue, false);
+	InternalDecTreeNode(String _label, Attribute _attribute, String _parentAttributeValue) {
+		super(_label, _attribute.category.getName(), _parentAttributeValue, false);
 		this.attribute = _attribute;
+	}
+	
+	public void returnChild(int index, DecTreeNode child) {
+		children.add(index, child);
+	}
+	
+	public void removeChild(DecTreeNode child) {
+		children.remove(child);
 	}
 
 	public String classify(Instance example) {

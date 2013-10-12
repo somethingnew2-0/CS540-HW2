@@ -67,10 +67,10 @@ public class DecisionTreeImpl extends DecisionTree {
 			List<Attribute> attributes, List<Instance> parentExamples,
 			String parentAttributeValue) {
 		if (examples.isEmpty() || attributes.isEmpty() || sameLabel(examples)) {
-			return plurality(parentExamples, parentAttributeValue);
+			return new LeafDecTreeNode(plurality(parentExamples), parentAttributeValue);
 		} else {
 			Attribute importantAttribute = importance(attributes, examples);
-			System.out.println("Winning Attribute: "+importantAttribute.category.getName());
+			//System.out.println("Winning Attribute: "+importantAttribute.category.getName());
 			List<Attribute> childAttributes = new ArrayList<Attribute>(
 					attributes);
 			childAttributes.remove(importantAttribute);
@@ -78,7 +78,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			Map<String, List<Instance>> childExamples = new LinkedHashMap<String, List<Instance>>();
 			if (Attribute.Type.NUMERICAL.equals(importantAttribute.category.getType())) {
 				double midpoint = midpoint(examples, importantAttribute.index);
-				node = new NumericalInternalDecTreeNode(importantAttribute, parentAttributeValue, midpoint);
+				node = new NumericalInternalDecTreeNode(plurality(examples), importantAttribute, parentAttributeValue, midpoint);
 				for (Instance example : examples) {
 					String importantAttributeValue = (Integer.parseInt(example.attributes
 							.get(importantAttribute.index)) < midpoint?"A":"B");
@@ -91,7 +91,7 @@ public class DecisionTreeImpl extends DecisionTree {
 					childExample.add(example);
 				}
 			} else {
-				node = new InternalDecTreeNode(importantAttribute, parentAttributeValue);
+				node = new InternalDecTreeNode(plurality(examples), importantAttribute, parentAttributeValue);
 				for (Instance example : examples) {
 					String importantAttributeValue = example.attributes
 							.get(importantAttribute.index);
@@ -112,8 +112,7 @@ public class DecisionTreeImpl extends DecisionTree {
 		}
 	}
 
-	private DecTreeNode plurality(List<Instance> examples,
-			String parentAttributeValue) {
+	private String plurality(List<Instance> examples) {
 		Map<String, Integer> scores = new LinkedHashMap<String, Integer>();
 		for (Instance instance : examples) {
 			Integer score = scores.get(instance.label);
@@ -137,7 +136,7 @@ public class DecisionTreeImpl extends DecisionTree {
 				}
 			}
 		}
-		return new LeafDecTreeNode(winner, parentAttributeValue);
+		return winner;
 	}
 
 	private Attribute importance(List<Attribute> attributes,
@@ -153,7 +152,7 @@ public class DecisionTreeImpl extends DecisionTree {
 			}
 		}
 		double creditEntropy = booleanEntropy(givenCredit / examples.size());
-		System.out.println("H(Credit) = " + creditEntropy);
+		//System.out.println("H(Credit) = " + creditEntropy);
 
 		for (int i = 0; i < attributes.size(); i++) {
 			Attribute attribute = attributes.get(i);
@@ -237,8 +236,7 @@ public class DecisionTreeImpl extends DecisionTree {
 
 			// Calculate I(Credit;Attribute) = H(Credit) - H(Credit|Attribute)
 			double totalEntropy = creditEntropy - attributeEntropy;
-			System.out.println("I(Credit;" + attribute.category.getName()
-					+ ") = " + totalEntropy);
+			//System.out.println("I(Credit;" + attribute.category.getName()	+ ") = " + totalEntropy);
 			if (totalEntropy > winningEntropy) {
 				winningEntropy = totalEntropy;
 				winningAttribute = attribute;
@@ -308,31 +306,70 @@ public class DecisionTreeImpl extends DecisionTree {
 		return classification;
 	}
 	
-	private void prune(DataSet tune) {	
+	private void prune(DataSet tune) {
+		root.print(0);
+		System.out.println("--------------------------------------------");
+		double originalAccuracy = calcTestAccuracy(tune, classify(tune));
 		// Can't really go about pruning if the root isn't internal
 		if(root instanceof InternalDecTreeNode) {			
-			InternalDecTreeNode nodeToPrune = (InternalDecTreeNode)root;			
-			double maxAccuracy = calcTestAccuracy(tune, classify(tune));
+			InternalDecTreeNode nodeToPrune = null, parentNodeToPrune = null;			
+			double maxAccuracy = originalAccuracy;
+			
+			InternalDecTreeNode savedInternalNode = (InternalDecTreeNode) root;
+			LeafDecTreeNode prunedLeafNode = new LeafDecTreeNode(savedInternalNode.label, savedInternalNode.parentAttributeValue);
+			
+			// Test pruning the root node
+			root = prunedLeafNode;
+			// Calculate the test accuracy with this node pruned
+			double accuracy = calcTestAccuracy(tune, classify(tune));
+			if(accuracy >= maxAccuracy) {
+				maxAccuracy = accuracy;
+				nodeToPrune = (InternalDecTreeNode)savedInternalNode;				
+			}			
+			
+			// Return tree back to original state
+			root = savedInternalNode;
 			
 			// Do a BFS search to determine which node to prune
 			Queue<InternalDecTreeNode> queue = new LinkedList<InternalDecTreeNode>();
 			queue.add((InternalDecTreeNode)root);
 			while(!queue.isEmpty()) {
 				InternalDecTreeNode internalNode = queue.remove();
-				
-				// Calculate the test accuracy with this node pruned
-				double accuracy = calcTestAccuracy(tune, classify(tune));
-				if(accuracy >= maxAccuracy) {
-					maxAccuracy = accuracy;
-					nodeToPrune = internalNode;
-				}
-				
-				for (DecTreeNode child : internalNode.children) {
+				for (int i = 0; i < internalNode.children.size(); i++) {
+					DecTreeNode child = internalNode.children.get(i);
 					if(child instanceof InternalDecTreeNode) {
-						queue.add((InternalDecTreeNode)child);
+						// Calculate the test accuracy with this node pruned
+						savedInternalNode = (InternalDecTreeNode) child;
+						prunedLeafNode = new LeafDecTreeNode(savedInternalNode.label, savedInternalNode.parentAttributeValue);
+						
+						internalNode.removeChild(child);						
+						internalNode.addChild(prunedLeafNode);
+						
+						accuracy = calcTestAccuracy(tune, classify(tune));
+						if(accuracy >= maxAccuracy) {
+							maxAccuracy = accuracy;
+							nodeToPrune = savedInternalNode;
+							parentNodeToPrune = internalNode;
+						}
+						
+						internalNode.removeChild(prunedLeafNode);
+						internalNode.returnChild(i, child);
+						
+						queue.add(savedInternalNode);
 					}
 				}
 			}
+			if(nodeToPrune != null) {
+				if(parentNodeToPrune != null) {
+					parentNodeToPrune.removeChild(nodeToPrune);
+					parentNodeToPrune.addChild(new LeafDecTreeNode(nodeToPrune.label, nodeToPrune.parentAttributeValue));
+
+					// Keep pruning until we can't get better accuracy than current
+					prune(tune);
+				} else {
+					root = new LeafDecTreeNode(nodeToPrune.label, nodeToPrune.parentAttributeValue);
+				}
+			} 
 		}
 	}
 
